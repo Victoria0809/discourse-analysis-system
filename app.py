@@ -1,8 +1,62 @@
 import streamlit as st
-import requests
 import spacy
+import subprocess
+import sys
+import os
+from pathlib import Path
+import requests
 import pandas as pd
 from spacy import displacy
+
+@st.cache_resource
+def load_spacy_model():
+    """健壮的spaCy模型加载函数，支持自动下载和错误处理"""
+    try:
+        st.info("🔄 正在加载spaCy英文模型...")
+        
+        # 尝试加载已安装的模型
+        nlp = spacy.load("en_core_web_sm")
+        st.success("✅ spaCy英文模型加载成功！")
+        return nlp
+        
+    except ImportError as e:
+        st.warning("⚠️ 模型未找到，尝试自动下载...")
+        
+        try:
+            # 方法1：使用Python命令下载
+            subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
+                          check=True, capture_output=True, text=True)
+            st.info("✅ 模型下载完成，尝试重新加载...")
+            
+            # 重新加载模型
+            nlp = spacy.load("en_core_web_sm")
+            st.success("✅ 模型重新加载成功！")
+            return nlp
+            
+        except Exception as download_error:
+            st.error(f"❌ 自动下载失败: {str(download_error)}")
+            st.info("🔧 尝试备用下载方法...")
+            
+            try:
+                # 方法2：使用pip安装
+                subprocess.run([sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl"], 
+                              check=True, capture_output=True, text=True)
+                nlp = spacy.load("en_core_web_sm")
+                st.success("✅ 通过备用方法成功加载模型！")
+                return nlp
+                
+            except Exception as backup_error:
+                st.error(f"❌ 所有下载方法都失败了: {str(backup_error)}")
+                st.error("🚨 请手动运行以下命令安装模型:")
+                st.code("python -m spacy download en_core_web_sm")
+                raise Exception("无法加载spaCy模型，请手动安装") from backup_error
+
+# 在应用开始时加载模型
+try:
+    nlp = load_spacy_model()
+except Exception as e:
+    st.error(f"❌ 应用启动失败: {str(e)}")
+    st.stop()
 
 # 设置页面配置
 st.set_page_config(
@@ -12,17 +66,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 加载spaCy模型
-@st.cache_resource
-def load_spacy_model():
-    try:
-        return spacy.load('en_core_web_sm')
-    except Exception as e:
-        st.warning(f"无法加载spaCy模型: {e}")
-        st.info("请运行: python -m spacy download en_core_web_sm 来安装模型")
-        return None
 
-nlp = load_spacy_model()
 
 # 自定义CSS
 st.markdown("""

@@ -4,3 +4,11 @@ spacy
 
 # 注意：需要手动安装en_core_web_sm模型
 # 运行命令: python -m spacy download en_core_web_sm
+spacy
+en-core-web-sm
+
+fastcoref
+transformers
+torch
+pandas
+requests

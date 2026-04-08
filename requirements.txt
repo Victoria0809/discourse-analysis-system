@@ -1,14 +1,8 @@
-streamlit
+streamlit>=1.30.0
 requests
-spacy
-
-# 注意：需要手动安装en_core_web_sm模型
-# 运行命令: python -m spacy download en_core_web_sm
-spacy
-en-core-web-sm
-
+spacy>=3.7.0,<4.0.0
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 fastcoref
-transformers
-torch
-pandas
-requests
+transformers>=4.30.0,<4.40.0
+torch>=2.0.0,<2.2.0
+pandas>=2.0.0

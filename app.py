@@ -8,48 +8,16 @@ import requests
 import pandas as pd
 from spacy import displacy
 
+# ====== 1. 缓存加载 spaCy 模型 ======
 @st.cache_resource
 def load_spacy_model():
-    """健壮的spaCy模型加载函数，支持自动下载和错误处理"""
     try:
-        st.info("🔄 正在加载spaCy英文模型...")
-        
-        # 尝试加载已安装的模型
-        nlp = spacy.load("en_core_web_sm")
-        st.success("✅ spaCy英文模型加载成功！")
-        return nlp
-        
-    except ImportError as e:
-        st.warning("⚠️ 模型未找到，尝试自动下载...")
-        
-        try:
-            # 方法1：使用Python命令下载
-            subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
-                          check=True, capture_output=True, text=True)
-            st.info("✅ 模型下载完成，尝试重新加载...")
-            
-            # 重新加载模型
-            nlp = spacy.load("en_core_web_sm")
-            st.success("✅ 模型重新加载成功！")
-            return nlp
-            
-        except Exception as download_error:
-            st.error(f"❌ 自动下载失败: {str(download_error)}")
-            st.info("🔧 尝试备用下载方法...")
-            
-            try:
-                # 方法2：使用pip安装
-                subprocess.run([sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl"], 
-                              check=True, capture_output=True, text=True)
-                nlp = spacy.load("en_core_web_sm")
-                st.success("✅ 通过备用方法成功加载模型！")
-                return nlp
-                
-            except Exception as backup_error:
-                st.error(f"❌ 所有下载方法都失败了: {str(backup_error)}")
-                st.error("🚨 请手动运行以下命令安装模型:")
-                st.code("python -m spacy download en_core_web_sm")
-                raise Exception("无法加载spaCy模型，请手动安装") from backup_error
+        return spacy.load("en_core_web_sm")
+    except OSError:
+        st.warning("⚠️ 正在下载 spaCy 模型...这可能需要几分钟时间")
+        import subprocess
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
+        return spacy.load("en_core_web_sm")
 
 # 在应用开始时加载模型
 try:

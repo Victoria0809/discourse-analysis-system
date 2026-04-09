@@ -1,37 +1,15 @@
-# Python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-env/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-*.cover
-
-# Virtual Environment
+.venv/
 venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Streamlit cache
-.streamlit/cache/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.swn
-
-# OS
+virtualenv/
+.env
+data/
+models/
+*.pkl
+*.h5
+*.pt
+*.onnx
 .DS_Store
 Thumbs.db

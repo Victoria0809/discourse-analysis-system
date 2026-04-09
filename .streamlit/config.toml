@@ -5,3 +5,6 @@ pythonVersion = "3.10.12"
 
 [logger]
 level = "debug"
+
+[server]
+enableXsrfProtection = false

@@ -1,65 +1,67 @@
-# ========== ADD THIS AT THE VERY TOP OF app.py ==========
+# ========== app.py 完整内容 ==========
 import os
 import sys
 import platform
 
-# 强制禁用所有GPU功能
+# 强制禁用所有GPU功能（在任何导入之前）
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["SPACY_PREFER_GPU"] = "0"
 os.environ["THINC_FORCE_CPU"] = "1"
 os.environ["NUMEXPR_MAX_THREADS"] = "2"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # 预加载numpy（关键！）
 try:
     import numpy as np
+
     np.seterr(all='ignore')
     print(f"✅ numpy {np.__version__} loaded successfully")
 except Exception as e:
     print(f"⚠️ numpy preload failed: {e}")
 
-# 检查ABI兼容性
-try:
-    from numpy.core.multiarray import dtype
-    dtype_size = dtype('float64').itemsize
-    print(f"✅ numpy dtype size: {dtype_size} bytes (ABI compatible)")
-except Exception as e:
-    print(f"⚠️ ABI check failed: {e}")
-
 print(f"✅ CPU-only mode enabled - Platform: {platform.machine()}")
-# ========================================================
 
+# ========== STREAMLIT 必须是第一个命令！ ==========
 import streamlit as st
+
+# ⚠️ 这必须是脚本中的第一个Streamlit命令！
+st.set_page_config(
+    page_title="自然语言处理 - 篇章分析",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ========== 其他导入（在set_page_config之后） ==========
 import spacy
 import requests
 import pandas as pd
 from spacy import displacy
+import plotly.express as px
+import plotly.graph_objects as go
+from collections import Counter
+import time
+import json
 
-
-# ====== 1. 缓存加载 spaCy 模型（轻量级） ======
-@st.cache_resource(ttl=3600)  # 缓存1小时
-def load_spacy_model():
-    try:
-        return spacy.load("en_core_web_sm")
-    except OSError:
-        st.warning("🔄 首次运行，正在下载语言模型（约50MB，需要1-2分钟）...")
+# ========== 应用逻辑 ==========
+# 显示加载状态
+with st.spinner("🧠 正在加载NLP模型...（首次加载需要1-2分钟）"):
+    @st.cache_resource
+    def load_spacy_model():
         try:
-            import subprocess
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-            return spacy.load("en_core_web_sm")
+            print("🔄 正在加载spacy模型...")
+            nlp = spacy.load("en_core_web_sm")
+            print("✅ spacy模型加载成功！")
+            return nlp
         except Exception as e:
-            st.error(f"❌ 模型下载失败: {str(e)}")
-            st.info("💡 请尝试在本地运行: python -m spacy download en_core_web_sm")
-            st.stop()
+            print(f"❌ 加载spacy模型失败: {e}")
+            st.error("⚠️ NLP模型加载失败。正在使用备用分析模式。")
+            return None
 
 
-# 在应用开始时加载模型
-try:
     nlp = load_spacy_model()
-except Exception as e:
-    st.error(f"❌ 应用启动失败: {str(e)}")
-    st.stop()
 
 # 设置页面配置
 st.set_page_config(

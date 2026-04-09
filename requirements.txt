@@ -1,13 +1,18 @@
-streamlit==1.28.0
-rich==13.7.1
-markdown-it-py==2.2.0
-mdurl==0.1.2
-pygments==2.15.1
+# 精确锁定所有版本（关键！）
 numpy==1.23.5
-spacy==3.5.4
-thinc==8.1.10
+spacy==3.5.4 --only-binary=:all:
+thinc==8.1.10 --only-binary=:all:
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
+en-core-web-sm==3.5.0
+
+# Streamlit 及其依赖（精确版本）
+streamlit==1.28.0
+rich==13.7.1  # 兼容 streamlit 1.28.0
+markdown-it-py==2.2.0
+pygments==2.15.1
 pandas==1.5.3
 requests==2.31.0
+
+# 其他依赖
 plotly==5.18.0
 altair==4.2.2

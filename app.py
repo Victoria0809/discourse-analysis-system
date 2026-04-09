@@ -38,43 +38,59 @@ from spacy import displacy
 import plotly.express as px
 import time
 from collections import Counter
-
-st.title("🧠 自然语言处理 - 篇章分析系统")
+import requests
 
 @st.cache_resource
 def load_spacy_model():
+    """健壮的spaCy模型加载函数，支持自动下载和错误处理"""
     try:
-        print("🔄 Loading spacy model...")
+        st.info("🔄 正在加载spaCy英文模型...")
+        
+        # 尝试加载已安装的模型
         nlp = spacy.load("en_core_web_sm")
-        print("✅ Spacy model loaded successfully!")
+        st.success("✅ spaCy英文模型加载成功！")
         return nlp
-    except Exception as e:
-        print(f"❌ Failed to load spacy model: {e}")
-        st.error("⚠️ Failed to load NLP model. Using fallback analysis.")
-        return None
+        
+    except ImportError as e:
+        st.warning("⚠️ 模型未找到，尝试自动下载...")
+        
+        try:
+            # 方法1：使用Python命令下载
+            import subprocess
+            subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"], 
+                          check=True, capture_output=True, text=True)
+            st.info("✅ 模型下载完成，尝试重新加载...")
+            
+            # 重新加载模型
+            nlp = spacy.load("en_core_web_sm")
+            st.success("✅ 模型重新加载成功！")
+            return nlp
+            
+        except Exception as download_error:
+            st.error(f"❌ 自动下载失败: {str(download_error)}")
+            st.info("🔧 尝试备用下载方法...")
+            
+            try:
+                # 方法2：使用pip安装
+                import subprocess
+                subprocess.run([sys.executable, "-m", "pip", "install", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl"], 
+                              check=True, capture_output=True, text=True)
+                nlp = spacy.load("en_core_web_sm")
+                st.success("✅ 通过备用方法成功加载模型！")
+                return nlp
+                
+            except Exception as backup_error:
+                st.error(f"❌ 所有下载方法都失败了: {str(backup_error)}")
+                st.error("🚨 请手动运行以下命令安装模型:")
+                st.code("python -m spacy download en_core_web_sm")
+                return None
 
-nlp = load_spacy_model()
-
-if nlp:
-    st.success("✅ NLP model loaded successfully!")
-else:
-    st.warning("⚠️ Using fallback text analysis mode")
-
-# 应用逻辑保持不变...
-text_input = st.text_area("输入文本", height=200)
-
-if text_input and nlp:
-    with st.spinner("🔍 Analyzing text..."):
-        doc = nlp(text_input)
-        st.write(f"📊 Found {len(doc)} tokens")
-
-# 设置页面配置
-st.set_page_config(
-    page_title="自然语言处理 - 篇章分析",
-    page_icon="🧠",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# 在应用开始时加载模型
+try:
+    nlp = load_spacy_model()
+except Exception as e:
+    st.error(f"❌ 应用启动失败: {str(e)}")
+    nlp = None
 
 # 自定义CSS（优化性能）
 st.markdown("""
@@ -707,51 +723,58 @@ with tab3:
         clusters = []
 
         # 提取命名实体
-        doc = nlp(text)
-        entities = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
+        if nlp:
+            try:
+                doc = nlp(text)
+                entities = [(ent.text, ent.label_, ent.start_char, ent.end_char) for ent in doc.ents]
 
-        # 按实体类型分组
-        entity_clusters = {}
-        for entity, label, start, end in entities:
-            if label not in ['CARDINAL', 'ORDINAL', 'PERCENT', 'MONEY', 'QUANTITY', 'TIME', 'DATE']:
-                entity_clusters.setdefault(label, []).append(entity)
+                # 按实体类型分组
+                entity_clusters = {}
+                for entity, label, start, end in entities:
+                    if label not in ['CARDINAL', 'ORDINAL', 'PERCENT', 'MONEY', 'QUANTITY', 'TIME', 'DATE']:
+                        entity_clusters.setdefault(label, []).append(entity)
 
-        # 创建基于实体的簇
-        for label, entities in entity_clusters.items():
-            if len(entities) > 1:
-                clusters.append(entities)
+                # 创建基于实体的簇
+                for label, entities in entity_clusters.items():
+                    if len(entities) > 1:
+                        clusters.append(entities)
 
-        # 代词消解（简单规则）
-        pronouns = {
-            'PERSON': ['he', 'she', 'his', 'her', 'him', 'they', 'their', 'them'],
-            'ORG': ['it', 'its', 'they', 'their', 'them']
-        }
+                # 代词消解（简单规则）
+                pronouns = {
+                    'PERSON': ['he', 'she', 'his', 'her', 'him', 'they', 'their', 'them'],
+                    'ORG': ['it', 'its', 'they', 'their', 'them']
+                }
 
-        for label, entity_list in entity_clusters.items():
-            if entity_list:
-                main_entity = entity_list[0].lower()
-                for sent in doc.sents:
-                    for token in sent:
-                        if token.pos_ == 'PRON' and token.text.lower() in pronouns.get('PERSON', []) + pronouns.get(
-                                'ORG', []):
-                            # 简单的性别和数量匹配
-                            if token.text.lower() in ['he', 'his', 'him'] and any(
-                                    'he' in name.lower() for name in entity_list):
-                                clusters.append([entity_list[0], token.text])
-                            elif token.text.lower() in ['she', 'her'] and any(
-                                    'she' in name.lower() for name in entity_list):
-                                clusters.append([entity_list[0], token.text])
+                for label, entity_list in entity_clusters.items():
+                    if entity_list:
+                        main_entity = entity_list[0].lower()
+                        for sent in doc.sents:
+                            for token in sent:
+                                if token.pos_ == 'PRON' and token.text.lower() in pronouns.get('PERSON', []) + pronouns.get(
+                                        'ORG', []):
+                                    # 简单的性别和数量匹配
+                                    if token.text.lower() in ['he', 'his', 'him'] and any(
+                                            'he' in name.lower() for name in entity_list):
+                                        clusters.append([entity_list[0], token.text])
+                                    elif token.text.lower() in ['she', 'her'] and any(
+                                            'she' in name.lower() for name in entity_list):
+                                        clusters.append([entity_list[0], token.text])
 
-        # 去重和清理
-        cleaned_clusters = []
-        seen_mentions = set()
-        for cluster in clusters:
-            cleaned_cluster = [mention for mention in cluster if mention not in seen_mentions]
-            if cleaned_cluster:
-                cleaned_clusters.append(cleaned_cluster)
-                seen_mentions.update(cleaned_cluster)
+                # 去重和清理
+                cleaned_clusters = []
+                seen_mentions = set()
+                for cluster in clusters:
+                    cleaned_cluster = [mention for mention in cluster if mention not in seen_mentions]
+                    if cleaned_cluster:
+                        cleaned_clusters.append(cleaned_cluster)
+                        seen_mentions.update(cleaned_cluster)
 
-        return cleaned_clusters if cleaned_clusters else mock_coreference_resolution(text)
+                return cleaned_clusters if cleaned_clusters else mock_coreference_resolution(text)
+            except Exception as e:
+                st.warning(f"⚠️ 轻量级消解失败，使用备用方案: {e}")
+                return mock_coreference_resolution(text)
+        else:
+            return mock_coreference_resolution(text)
 
 
     # 备用的模拟指代消解
@@ -774,14 +797,18 @@ with tab3:
             clusters.append(["its quarterly earnings", "a 15% increase in revenue", "this growth"])
         # 通用处理
         else:
-            doc = nlp(text)
-            people = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
-            if people:
-                # 寻找对应的代词
-                pronouns = [token.text for token in doc if
-                            token.pos_ == "PRON" and token.text.lower() in ["he", "she", "his", "her"]]
-                if pronouns:
-                    clusters.append(people + pronouns)
+            if nlp:
+                try:
+                    doc = nlp(text)
+                    people = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+                    if people:
+                        # 寻找对应的代词
+                        pronouns = [token.text for token in doc if
+                                    token.pos_ == "PRON" and token.text.lower() in ["he", "she", "his", "her"]]
+                        if pronouns:
+                            clusters.append(people + pronouns)
+                except Exception:
+                    pass
 
         return clusters
 

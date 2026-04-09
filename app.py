@@ -1,3 +1,19 @@
+import os
+import sys
+
+# 强制禁用 GPU（Streamlit Cloud 无 GPU 驱动）
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ["SPACY_PREFER_GPU"] = "0"
+os.environ["THINC_FORCE_CPU"] = "1"
+
+# 禁用 thinc 的 GPU 检测
+try:
+    import thinc
+
+    thinc.config.set_gpu_allocator(None)
+except:
+    pass
+
 import streamlit as st
 import spacy
 import requests

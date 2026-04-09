@@ -1,9 +1,17 @@
-streamlit==1.56.0
-spacy==3.7.5
+# 1. 先安装 numpy（基础依赖）
+numpy==1.26.4
+
+# 2. 安装预编译的 spacy（避免编译）
+spacy==3.7.4 --only-binary=:all:
+
+# 3. 显式安装预编译的 thinc
+thinc==8.2.2 --only-binary=:all:
+
+# 4. 安装模型（使用 whl 链接）
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 en-core-web-sm==3.7.1
-requests==2.33.1
-pandas==2.3.3
-torch==2.1.2
-transformers==4.39.3
-fastcoref
+
+# 5. 其他依赖
+streamlit==1.32.0
+requests==2.31.0
+pandas==2.2.1

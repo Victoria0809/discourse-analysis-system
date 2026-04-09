@@ -1,9 +1,9 @@
-# ========== app.py 完整内容 ==========
+# app.py
 import os
 import sys
 import platform
 
-# 强制禁用所有GPU功能（在任何导入之前）
+# 强制禁用GPU（在任何导入之前）
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["SPACY_PREFER_GPU"] = "0"
 os.environ["THINC_FORCE_CPU"] = "1"
@@ -12,10 +12,9 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-# 预加载numpy（关键！）
+# 预加载numpy
 try:
     import numpy as np
-
     np.seterr(all='ignore')
     print(f"✅ numpy {np.__version__} loaded successfully")
 except Exception as e:
@@ -23,10 +22,8 @@ except Exception as e:
 
 print(f"✅ CPU-only mode enabled - Platform: {platform.machine()}")
 
-# ========== STREAMLIT 必须是第一个命令！ ==========
+# ⚠️ 这必须是第一个Streamlit命令！
 import streamlit as st
-
-# ⚠️ 这必须是脚本中的第一个Streamlit命令！
 st.set_page_config(
     page_title="自然语言处理 - 篇章分析",
     page_icon="🧠",
@@ -34,34 +31,42 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ========== 其他导入（在set_page_config之后） ==========
+# 其他导入
 import spacy
-import requests
 import pandas as pd
 from spacy import displacy
 import plotly.express as px
-import plotly.graph_objects as go
-from collections import Counter
 import time
-import json
+from collections import Counter
 
-# ========== 应用逻辑 ==========
-# 显示加载状态
-with st.spinner("🧠 正在加载NLP模型...（首次加载需要1-2分钟）"):
-    @st.cache_resource
-    def load_spacy_model():
-        try:
-            print("🔄 正在加载spacy模型...")
-            nlp = spacy.load("en_core_web_sm")
-            print("✅ spacy模型加载成功！")
-            return nlp
-        except Exception as e:
-            print(f"❌ 加载spacy模型失败: {e}")
-            st.error("⚠️ NLP模型加载失败。正在使用备用分析模式。")
-            return None
+st.title("🧠 自然语言处理 - 篇章分析系统")
 
+@st.cache_resource
+def load_spacy_model():
+    try:
+        print("🔄 Loading spacy model...")
+        nlp = spacy.load("en_core_web_sm")
+        print("✅ Spacy model loaded successfully!")
+        return nlp
+    except Exception as e:
+        print(f"❌ Failed to load spacy model: {e}")
+        st.error("⚠️ Failed to load NLP model. Using fallback analysis.")
+        return None
 
-    nlp = load_spacy_model()
+nlp = load_spacy_model()
+
+if nlp:
+    st.success("✅ NLP model loaded successfully!")
+else:
+    st.warning("⚠️ Using fallback text analysis mode")
+
+# 应用逻辑保持不变...
+text_input = st.text_area("输入文本", height=200)
+
+if text_input and nlp:
+    with st.spinner("🔍 Analyzing text..."):
+        doc = nlp(text_input)
+        st.write(f"📊 Found {len(doc)} tokens")
 
 # 设置页面配置
 st.set_page_config(

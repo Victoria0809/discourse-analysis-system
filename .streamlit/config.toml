@@ -8,3 +8,6 @@ level = "debug"
 
 [server]
 enableXsrfProtection = false
+
+# 关键：禁用自动依赖安装
+disableWatchdogWarning = true

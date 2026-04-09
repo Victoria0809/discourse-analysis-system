@@ -302,103 +302,104 @@ with tab1:
             for i, edu in enumerate(edu_list):
                 st.markdown(f"<div class='stCard'><strong>EDU {i + 1}:</strong> {edu}</div>", unsafe_allow_html=True)
 
+    # 规则基线EDU分割函数
+    def rule_based_edu_segmentation(text):
+        tokens = text.split()
+        boundaries = ['O'] * len(tokens)
 
-        # 规则基线EDU分割函数
-        def rule_based_edu_segmentation(text):
-            tokens = text.split()
-            boundaries = ['O'] * len(tokens)
+        # 规则1: 遇到句末标点时切分
+        for i, token in enumerate(tokens):
+            if token in ['.', '!', '?']:
+                boundaries[i] = 'B'
 
-            # 规则1: 遇到句末标点时切分
-            for i, token in enumerate(tokens):
-                if token in ['.', '!', '?']:
-                    boundaries[i] = 'B'
-
-            # 规则2: 遇到从属连词时切分
-            if nlp:
+        # 规则2: 遇到从属连词时切分
+        if nlp:
+            try:
                 doc = nlp(text)
                 for i, token in enumerate(doc):
                     if token.pos_ == 'SCONJ' and i < len(boundaries):
                         boundaries[i] = 'B'
+            except Exception:
+                pass
 
-            # 生成EDU列表
-            edu_list = []
-            current_edu = []
-            for i, (token, boundary) in enumerate(zip(tokens, boundaries)):
-                current_edu.append(token)
-                if boundary == 'B' or i == len(tokens) - 1:
-                    edu_text = ' '.join(current_edu)
-                    edu_list.append(edu_text)
-                    current_edu = []
+        # 生成EDU列表
+        edu_list = []
+        current_edu = []
+        for i, (token, boundary) in enumerate(zip(tokens, boundaries)):
+            current_edu.append(token)
+            if boundary == 'B' or i == len(tokens) - 1:
+                edu_text = ' '.join(current_edu)
+                edu_list.append(edu_text)
+                current_edu = []
 
-            return edu_list
+        return edu_list
 
+    # ====== 观察任务交互区 ======
+    st.markdown("### 🔍 观察任务：边界检测机制分析")
+    st.write("点击按钮运行演示，比较规则基线与神经网络在复杂句子中的边界检测差异")
 
-        # ====== 观察任务交互区 ======
-        st.markdown("### 🔍 观察任务：边界检测机制分析")
-        st.write("点击按钮运行演示，比较规则基线与神经网络在复杂句子中的边界检测差异")
+    # 初始化session state
+    if 'module1_demo_run' not in st.session_state:
+        st.session_state.module1_demo_run = False
 
-        # 初始化session state
-        if 'module1_demo_run' not in st.session_state:
-            st.session_state.module1_demo_run = False
+    # 演示按钮
+    if st.button("🚀 运行边界检测演示", key="module1_demo_btn"):
+        st.session_state.module1_demo_run = True
 
-        # 演示按钮
-        if st.button("🚀 运行边界检测演示", key="module1_demo_btn"):
-            st.session_state.module1_demo_run = True
+    # 演示结果显示区（仅在按钮点击后显示）
+    if st.session_state.module1_demo_run:
+        with st.spinner("运行演示中..."):
+            # 预设复杂测试句子
+            demo_text = "Although the market was volatile during the third quarter, the company's strategic investments in emerging technologies, which were announced last month, have shown promising returns despite economic uncertainties."
 
-        # 演示结果显示区（仅在按钮点击后显示）
-        if st.session_state.module1_demo_run:
-            with st.spinner("运行演示中..."):
-                # 预设复杂测试句子
-                demo_text = "Although the market was volatile during the third quarter, the company's strategic investments in emerging technologies, which were announced last month, have shown promising returns despite economic uncertainties."
+            # 调用实际函数
+            baseline_result = rule_based_edu_segmentation(demo_text)
+            neural_result = [
+                "Although the market was volatile during the third quarter ,",
+                "the company's strategic investments in emerging technologies ,",
+                "which were announced last month ,",
+                "have shown promising returns despite economic uncertainties ."
+            ]
 
-                # 调用实际函数
-                baseline_result = rule_based_edu_segmentation(demo_text)
-                neural_result = [
-                    "Although the market was volatile during the third quarter ,",
-                    "the company's strategic investments in emerging technologies ,",
-                    "which were announced last month ,",
-                    "have shown promising returns despite economic uncertainties ."
-                ]
+            # 创建对比显示
+            st.subheader("📊 演示结果对比")
+            col1, col2 = st.columns(2)
 
-                # 创建对比显示
-                st.subheader("📊 演示结果对比")
-                col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**规则基线结果**")
+                for i, edu in enumerate(baseline_result):
+                    st.markdown(
+                        f"<div style='background-color: #ffebee; padding: 8px; border-radius: 4px; margin: 4px 0;'>EDU {i + 1}: {edu}</div>",
+                        unsafe_allow_html=True)
 
-                with col1:
-                    st.markdown("**规则基线结果**")
-                    for i, edu in enumerate(baseline_result):
-                        st.markdown(
-                            f"<div style='background-color: #ffebee; padding: 8px; border-radius: 4px; margin: 4px 0;'>EDU {i + 1}: {edu}</div>",
-                            unsafe_allow_html=True)
+            with col2:
+                st.markdown("**神经网络标注结果**")
+                for i, edu in enumerate(neural_result):
+                    st.markdown(
+                        f"<div style='background-color: #e8f5e9; padding: 8px; border-radius: 4px; margin: 4px 0;'>EDU {i + 1}: {edu}</div>",
+                        unsafe_allow_html=True)
 
-                with col2:
-                    st.markdown("**神经网络标注结果**")
-                    for i, edu in enumerate(neural_result):
-                        st.markdown(
-                            f"<div style='background-color: #e8f5e9; padding: 8px; border-radius: 4px; margin: 4px 0;'>EDU {i + 1}: {edu}</div>",
-                            unsafe_allow_html=True)
+            # 关键发现总结
+            st.info(
+                "🔍 **关键发现**：神经网络在'although'和'which'引导的从句处检测到更精确的边界，而规则基线在复杂嵌套结构中容易遗漏边界。")
 
-                # 关键发现总结
-                st.info(
-                    "🔍 **关键发现**：神经网络在'although'和'which'引导的从句处检测到更精确的边界，而规则基线在复杂嵌套结构中容易遗漏边界。")
+    # ====== 预设答案区 ======
+    with st.expander("💡 [答案] 受限自注意力机制如何提高边界检测准确性？"):
+        st.success('''
+        **答案**：受限自注意力机制通过限制注意力窗口（通常3-5个词），有效减少了长距离依赖带来的噪声，使模型更专注于局部上下文特征，从而提高了边界检测的准确性。实验显示，85%的边界决策只需要考虑当前词前后3-5个词的上下文信息。
 
-        # ====== 预设答案区 ======
-        with st.expander("💡 [答案] 受限自注意力机制如何提高边界检测准确性？"):
-            st.success('''
-            **答案**：受限自注意力机制通过限制注意力窗口（通常3-5个词），有效减少了长距离依赖带来的噪声，使模型更专注于局部上下文特征，从而提高了边界检测的准确性。实验显示，85%的边界决策只需要考虑当前词前后3-5个词的上下文信息。
+        **机制详解**：
+        - **窗口限制**：将注意力范围限制在当前词前后3-5个词，避免无关信息干扰
+        - **特征聚焦**：集中计算局部窗口内的词汇、句法特征，如标点、连词、动词短语
+        - **噪声抑制**：过滤长距离的无关依赖关系，特别是在嵌套从句中
+        - **效率优化**：减少计算复杂度，使模型能够处理更长的篇章
 
-            **机制详解**：
-            - **窗口限制**：将注意力范围限制在当前词前后3-5个词，避免无关信息干扰
-            - **特征聚焦**：集中计算局部窗口内的词汇、句法特征，如标点、连词、动词短语
-            - **噪声抑制**：过滤长距离的无关依赖关系，特别是在嵌套从句中
-            - **效率优化**：减少计算复杂度，使模型能够处理更长的篇章
-
-            **本演示中的体现**：
-            在句子"Although the market was volatile..."中：
-            - 规则基线在'although'后正确切分，但在'which'引导的定语从句处遗漏边界
-            - 神经网络在'although'、'which'和'month'后都检测到边界，符合人类标注标准
-            - 这验证了课件P36的发现：受限自注意力机制能更准确地捕捉复杂句法结构中的边界
-            ''')
+        **本演示中的体现**：
+        在句子"Although the market was volatile..."中：
+        - 规则基线在'although'后正确切分，但在'which'引导的定语从句处遗漏边界
+        - 神经网络在'although'、'which'和'month'后都检测到边界，符合人类标注标准
+        - 这验证了课件P36的发现：受限自注意力机制能更准确地捕捉复杂句法结构中的边界
+        ''')
 
 # 第二个标签页：浅层篇章分析
 with tab2:
@@ -548,106 +549,104 @@ with tab2:
         <p>思考课件P51提到的"显式连接词消歧"在实际工程中的难点：为什么同一个词在不同语境下会有不同的语义？句法特征如何帮助解决这个问题？</p>
         </div>''', unsafe_allow_html=True)
 
-
-        # 连接词检测函数
-        def detect_discourse_connectives(text):
-            detected = []
-            for category, connectives in connective_dict.items():
-                for connective in connectives:
-                    if connective in text.lower():
-                        # 简单的语义分类逻辑
-                        if connective == "since":
-                            # 基于上下文的简单分类
-                            if "located" in text.lower() or "because" in text.lower() or "due to" in text.lower():
-                                sem_class = "CONTINGENCY"
-                            else:
-                                sem_class = "TEMPORAL"
+    # 连接词检测函数
+    def detect_discourse_connectives(text):
+        detected = []
+        for category, connectives in connective_dict.items():
+            for connective in connectives:
+                if connective in text.lower():
+                    # 简单的语义分类逻辑
+                    if connective == "since":
+                        # 基于上下文的简单分类
+                        if "located" in text.lower() or "because" in text.lower() or "due to" in text.lower():
+                            sem_class = "CONTINGENCY"
                         else:
-                            sem_class = category
-                        detected.append({
-                            'connective': connective,
-                            'sem_class': sem_class
-                        })
-            return detected
-
-
-        # ====== 观察任务交互区 ======
-        st.markdown("### 🔍 观察任务：连接词消歧挑战")
-        st.write("点击按钮运行'since'消歧演示，观察同一连接词在不同语境下的语义类别差异")
-
-        # 初始化session state
-        if 'module2_demo_run' not in st.session_state:
-            st.session_state.module2_demo_run = False
-
-        # 演示按钮
-        if st.button("🚀 运行'since'消歧演示", key="module2_demo_btn"):
-            st.session_state.module2_demo_run = True
-
-        # 演示结果显示区
-        if st.session_state.module2_demo_run:
-            with st.spinner("分析中..."):
-                # 预设两个测试句子
-                sentences = [
-                    "Guangzhou has a wide water area with many rivers and water systems since it is located in the water-rich area of southern China.",
-                    "She has been living in Shanghai since she graduated from Shanghai University of Finance and Economics."
-                ]
-
-                results = []
-                for sentence in sentences:
-                    # 调用实际函数
-                    connections = detect_discourse_connectives(sentence)
-                    results.append({
-                        '句子': sentence,
-                        '连接词': connections[0]['connective'] if connections else '未检测到',
-                        '预测类别': connections[0]['sem_class'] if connections else 'N/A',
-                        '正确类别': 'CONTINGENCY' if sentences.index(sentence) == 0 else 'TEMPORAL'
+                            sem_class = "TEMPORAL"
+                    else:
+                        sem_class = category
+                    detected.append({
+                        'connective': connective,
+                        'sem_class': sem_class
                     })
+        return detected
 
-                # 显示结果表格
-                st.subheader("📊 消歧演示结果")
-                demo_df = pd.DataFrame(results)
-                st.dataframe(demo_df.style.apply(lambda x: [
-                    'background-color: #e8f5e9' if x['预测类别'] == x['正确类别'] else 'background-color: #ffebee' for i
-                    in x], axis=1))
+    # ====== 观察任务交互区 ======
+    st.markdown("### 🔍 观察任务：连接词消歧挑战")
+    st.write("点击按钮运行'since'消歧演示，观察同一连接词在不同语境下的语义类别差异")
 
-                # 可视化标注
-                st.subheader("🎨 语义标注可视化")
-                for i, row in demo_df.iterrows():
-                    sentence = row['句子']
-                    connective = row['连接词']
-                    sem_class = row['预测类别']
-                    color = "#4CAF50" if sem_class == row['正确类别'] else "#F44336"
+    # 初始化session state
+    if 'module2_demo_run' not in st.session_state:
+        st.session_state.module2_demo_run = False
 
-                    annotated_text = sentence.replace(
-                        connective,
-                        f"<span style='background-color: {color}; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>{connective} [{sem_class}]</span>"
-                    )
-                    st.markdown(f"**例句 {i + 1}:** {annotated_text}", unsafe_allow_html=True)
+    # 演示按钮
+    if st.button("🚀 运行'since'消歧演示", key="module2_demo_btn"):
+        st.session_state.module2_demo_run = True
 
-        # ====== 预设答案区 ======
-        with st.expander("💡 [答案] 'since'的消歧难点和工程解决方案？"):
-            st.info('''
-            **答案**：在第一个句子中，'since'表达CONTINGENCY（因果）关系，描述地理位置的原因；在第二个句子中，'since'表达TEMPORAL（时间）关系，描述居住时间的起点。消歧核心难点在于需要理解上下文语义，而非仅依靠词法特征。
+    # 演示结果显示区
+    if st.session_state.module2_demo_run:
+        with st.spinner("分析中..."):
+            # 预设两个测试句子
+            sentences = [
+                "Guangzhou has a wide water area with many rivers and water systems since it is located in the water-rich area of southern China.",
+                "She has been living in Shanghai since she graduated from Shanghai University of Finance and Economics."
+            ]
 
-            **消歧难点**：
-            1. **语义歧义**：同一个词形对应不同语义关系
-            2. **上下文依赖**：需要分析整个句子的语义结构
-            3. **句法复杂性**：连接词可能出现在主句、从句的不同位置
+            results = []
+            for sentence in sentences:
+                # 调用实际函数
+                connections = detect_discourse_connectives(sentence)
+                results.append({
+                    '句子': sentence,
+                    '连接词': connections[0]['connective'] if connections else '未检测到',
+                    '预测类别': connections[0]['sem_class'] if connections else 'N/A',
+                    '正确类别': 'CONTINGENCY' if sentences.index(sentence) == 0 else 'TEMPORAL'
+                })
 
-            **工程解决方案**：
-            - **特征工程**：结合句法树深度、主语一致性、动词时态等特征
-            - **上下文窗口**：分析连接词前后10个词的语义特征
-            - **机器学习分类**：使用BERT等预训练模型进行语义分类
-            - **规则+统计混合**：对高频连接词使用规则，对低频使用统计方法
+            # 显示结果表格
+            st.subheader("📊 消歧演示结果")
+            demo_df = pd.DataFrame(results)
+            st.dataframe(demo_df.style.apply(lambda x: [
+                'background-color: #e8f5e9' if x['预测类别'] == x['正确类别'] else 'background-color: #ffebee' for i
+                in x], axis=1))
 
-            **PDTB框架价值**：
-            通过四级标注体系（CLASS→TYPE→SUBTYPE→Relation）提供细粒度区分：
-            - CONTINGENCY.CAUSE.REASON：因果原因关系
-            - TEMPORAL.SYNCHRONOUS.DURING：时间同步关系
+            # 可视化标注
+            st.subheader("🎨 语义标注可视化")
+            for i, row in demo_df.iterrows():
+                sentence = row['句子']
+                connective = row['连接词']
+                sem_class = row['预测类别']
+                color = "#4CAF50" if sem_class == row['正确类别'] else "#F44336"
 
-            **本演示启示**：
-            简单的词典匹配方法在复杂语境中容易失败，需要结合句法分析和语义理解。现代系统通常使用端到端神经网络，准确率可达85%以上。
-            ''')
+                annotated_text = sentence.replace(
+                    connective,
+                    f"<span style='background-color: {color}; padding: 2px 6px; border-radius: 4px; font-weight: bold;'>{connective} [{sem_class}]</span>"
+                )
+                st.markdown(f"**例句 {i + 1}:** {annotated_text}", unsafe_allow_html=True)
+
+    # ====== 预设答案区 ======
+    with st.expander("💡 [答案] 'since'的消歧难点和工程解决方案？"):
+        st.info('''
+        **答案**：在第一个句子中，'since'表达CONTINGENCY（因果）关系，描述地理位置的原因；在第二个句子中，'since'表达TEMPORAL（时间）关系，描述居住时间的起点。消歧核心难点在于需要理解上下文语义，而非仅依靠词法特征。
+
+        **消歧难点**：
+        1. **语义歧义**：同一个词形对应不同语义关系
+        2. **上下文依赖**：需要分析整个句子的语义结构
+        3. **句法复杂性**：连接词可能出现在主句、从句的不同位置
+
+        **工程解决方案**：
+        - **特征工程**：结合句法树深度、主语一致性、动词时态等特征
+        - **上下文窗口**：分析连接词前后10个词的语义特征
+        - **机器学习分类**：使用BERT等预训练模型进行语义分类
+        - **规则+统计混合**：对高频连接词使用规则，对低频使用统计方法
+
+        **PDTB框架价值**：
+        通过四级标注体系（CLASS→TYPE→SUBTYPE→Relation）提供细粒度区分：
+        - CONTINGENCY.CAUSE.REASON：因果原因关系
+        - TEMPORAL.SYNCHRONOUS.DURING：时间同步关系
+
+        **本演示启示**：
+        简单的词典匹配方法在复杂语境中容易失败，需要结合句法分析和语义理解。现代系统通常使用端到端神经网络，准确率可达85%以上。
+        ''')
 
 # 第三个标签页：指代消解分析
 with tab3:
@@ -861,76 +860,76 @@ with tab3:
         <p>课件P72提到的"基于表述排序（Mention Ranking）"算法：在底层是如何给这些代词计算关联分数的？为什么E2E-COREF要同时学习表述检测和指代聚类？这种端到端的方法相比传统两阶段方法有什么优势？</p>
         </div>''', unsafe_allow_html=True)
 
-        # ====== 观察任务交互区 ======
-        st.markdown("### 🔍 观察任务：跨句子回指分析")
-        st.write("点击按钮运行演示，分析包含跨句子回指的文本")
+    # ====== 观察任务交互区 ======
+    st.markdown("### 🔍 观察任务：跨句子回指分析")
+    st.write("点击按钮运行演示，分析包含跨句子回指的文本")
 
-        # 初始化session state
-        if 'module3_demo_run' not in st.session_state:
-            st.session_state.module3_demo_run = False
+    # 初始化session state
+    if 'module3_demo_run' not in st.session_state:
+        st.session_state.module3_demo_run = False
 
-        # 演示按钮
-        if st.button("🚀 运行跨句子回指演示", key="module3_demo_btn"):
-            st.session_state.module3_demo_run = True
+    # 演示按钮
+    if st.button("🚀 运行跨句子回指演示", key="module3_demo_btn"):
+        st.session_state.module3_demo_run = True
 
-        # 演示结果显示区（仅在按钮点击后显示）
-        if st.session_state.module3_demo_run:
-            with st.spinner("运行演示中..."):
-                # 预设复杂示例文本
-                demo_text = """Barack Obama nominated Hillary Rodham Clinton as his secretary of state on Monday. He announced the nomination at a press conference. The president said she would be an excellent choice. They both have extensive experience in government."""
+    # 演示结果显示区（仅在按钮点击后显示）
+    if st.session_state.module3_demo_run:
+        with st.spinner("运行演示中..."):
+            # 预设复杂示例文本
+            demo_text = """Barack Obama nominated Hillary Rodham Clinton as his secretary of state on Monday. He announced the nomination at a press conference. The president said she would be an excellent choice. They both have extensive experience in government."""
 
-                # 调用指代消解函数
-                demo_clusters = lightweight_coreference_resolution(demo_text)
+            # 调用指代消解函数
+            demo_clusters = lightweight_coreference_resolution(demo_text)
 
-                # 显示演示结果
-                st.write("**自动分析结果：**")
-                for i, cluster in enumerate(demo_clusters):
-                    st.markdown(f"**Cluster {i + 1}:** {cluster}")
+            # 显示演示结果
+            st.write("**自动分析结果：**")
+            for i, cluster in enumerate(demo_clusters):
+                st.markdown(f"**Cluster {i + 1}:** {cluster}")
 
-                # 可视化演示
-                highlighted_text = demo_text
-                for i, cluster in enumerate(demo_clusters):
-                    color = f"rgba({(i * 50) % 255}, {(i * 100) % 255}, {(i * 150) % 255}, 0.3)"
-                    for mention in cluster:
-                        if mention in highlighted_text:
-                            highlighted_text = highlighted_text.replace(mention,
-                                                                        f"<span style='background-color: {color}; padding: 2px 4px; border-radius: 3px;'>{mention}</span>")
-                st.markdown(highlighted_text, unsafe_allow_html=True)
+            # 可视化演示
+            highlighted_text = demo_text
+            for i, cluster in enumerate(demo_clusters):
+                color = f"rgba({(i * 50) % 255}, {(i * 100) % 255}, {(i * 150) % 255}, 0.3)"
+                for mention in cluster:
+                    if mention in highlighted_text:
+                        highlighted_text = highlighted_text.replace(mention,
+                                                                    f"<span style='background-color: {color}; padding: 2px 4px; border-radius: 3px;'>{mention}</span>")
+            st.markdown(highlighted_text, unsafe_allow_html=True)
 
-                # 关键发现总结
-                st.info(
-                    "🔍 **关键发现**：模型成功识别了跨句子的回指关系，包括'Barack Obama'与'He'、'The president'的共指，以及'Hillary Rodham Clinton'与'she'的共指。")
+            # 关键发现总结
+            st.info(
+                "🔍 **关键发现**：模型成功识别了跨句子的回指关系，包括'Barack Obama'与'He'、'The president'的共指，以及'Hillary Rodham Clinton'与'she'的共指。")
 
-        # ====== 预设答案区 ======
-        with st.expander("💡 [答案] 基于表述排序的算法如何计算关联分数？"):
-            st.success('''
-            **答案：** E2E-COREF模型通过计算表述对之间的语义相似度、句法特征和位置特征来确定关联分数。它同时学习表述检测和指代聚类，避免了传统两阶段方法中的错误传播问题。端到端方法的优势在于能够联合优化两个任务，利用深层语义信息提高整体性能。
+    # ====== 预设答案区 ======
+    with st.expander("💡 [答案] 基于表述排序的算法如何计算关联分数？"):
+        st.success('''
+        **答案：** E2E-COREF模型通过计算表述对之间的语义相似度、句法特征和位置特征来确定关联分数。它同时学习表述检测和指代聚类，避免了传统两阶段方法中的错误传播问题。端到端方法的优势在于能够联合优化两个任务，利用深层语义信息提高整体性能。
 
-            **关联分数计算机制：**
-            1. **特征提取**：
-               - 语义特征：BERT等预训练模型的上下文表示
-               - 句法特征：依存关系、句法树距离
-               - 位置特征：句子位置、距离信息
-               - 词性特征：代词、命名实体、普通名词
+        **关联分数计算机制：**
+        1. **特征提取**：
+           - 语义特征：BERT等预训练模型的上下文表示
+           - 句法特征：依存关系、句法树距离
+           - 位置特征：句子位置、距离信息
+           - 词性特征：代词、命名实体、普通名词
 
-            2. **评分函数**：
-               - 计算两个表述的特征向量相似度
-               - 使用神经网络学习复杂的特征组合
-               - 考虑先行词和照应词的相对位置
+        2. **评分函数**：
+           - 计算两个表述的特征向量相似度
+           - 使用神经网络学习复杂的特征组合
+           - 考虑先行词和照应词的相对位置
 
-            3. **排序策略**：
-               - 对每个照应词，计算与所有候选先行词的分数
-               - 选择分数最高的作为最可能的先行词
-               - 使用束搜索（beam search）优化全局聚类
+        3. **排序策略**：
+           - 对每个照应词，计算与所有候选先行词的分数
+           - 选择分数最高的作为最可能的先行词
+           - 使用束搜索（beam search）优化全局聚类
 
-            **端到端方法优势：**
-            - **错误传播抑制**：传统方法中表述检测错误会传递到消解阶段
-            - **联合优化**：两个任务共享参数，相互促进
-            - **深层语义理解**：利用预训练模型的上下文表示
-            - **端到端训练**：直接优化最终评价指标
+        **端到端方法优势：**
+        - **错误传播抑制**：传统方法中表述检测错误会传递到消解阶段
+        - **联合优化**：两个任务共享参数，相互促进
+        - **深层语义理解**：利用预训练模型的上下文表示
+        - **端到端训练**：直接优化最终评价指标
 
-            **实际性能**：现代E2E-COREF模型在OntoNotes数据集上达到约80%的共指消解F1分数，显著优于传统方法。
-            ''')
+        **实际性能**：现代E2E-COREF模型在OntoNotes数据集上达到约80%的共指消解F1分数，显著优于传统方法。
+        ''')
 
 # 页脚
 st.markdown("---")

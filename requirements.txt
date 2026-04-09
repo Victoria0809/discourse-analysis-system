@@ -1,4 +1,9 @@
-streamlit>=1.30.0
-spacy==3.7.4
-requests
-pandas==2.2.1
+streamlit==1.56.0
+spacy==3.7.5
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+en-core-web-sm==3.7.1
+requests==2.33.1
+pandas==2.3.3
+torch==2.1.2
+transformers==4.39.3
+fastcoref

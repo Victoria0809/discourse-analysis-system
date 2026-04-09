@@ -1,13 +1,14 @@
-[global]
-usePip = true
-pipInstallArgs = "--no-cache-dir --prefer-binary --only-binary=:all:"
-pythonVersion = "3.10.12"
+[theme]
+primaryColor = "#0d6efd"
+backgroundColor = "#f8f9fa"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#212529"
 
 [logger]
 level = "debug"
 
 [server]
+headless = true
+port = 8501
+enableCORS = false
 enableXsrfProtection = false
-
-# 关键：禁用自动依赖安装
-disableWatchdogWarning = true

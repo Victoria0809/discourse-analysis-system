@@ -1,7 +1,15 @@
-numpy==1.26.4
-spacy==3.7.4 --only-binary=:all:
-thinc==8.2.2 --only-binary=:all:
-https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
-streamlit==1.32.0
+# 精确锁定numpy版本（关键！）
+numpy==1.23.5
+
+# 使用与numpy 1.23.5完全兼容的spacy/thinc版本
+spacy==3.5.4 --only-binary=:all:
+thinc==8.1.10 --only-binary=:all:
+
+# 模型使用兼容版本
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.5.0/en_core_web_sm-3.5.0-py3-none-any.whl
+en-core-web-sm==3.5.0
+
+# 其他依赖（精确版本）
+streamlit==1.28.0
 requests==2.31.0
-pandas==2.2.1
+pandas==1.5.3

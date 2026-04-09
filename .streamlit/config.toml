@@ -1,3 +1,7 @@
 [global]
 usePip = true
 pipInstallArgs = "--no-cache-dir --prefer-binary --only-binary=:all:"
+pythonVersion = "3.10.12"
+
+[logger]
+level = "debug"

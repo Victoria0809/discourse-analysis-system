@@ -1,27 +1,34 @@
+# ========== ADD THIS AT THE VERY TOP OF app.py ==========
 import os
 import sys
+import platform
+
 # 强制禁用所有GPU功能
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["SPACY_PREFER_GPU"] = "0"
 os.environ["THINC_FORCE_CPU"] = "1"
-os.environ["NUMEXPR_MAX_THREADS"] = "2"  # 限制CPU使用
+os.environ["NUMEXPR_MAX_THREADS"] = "2"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
-# 预加载numpy避免冲突
+# 预加载numpy（关键！）
 try:
     import numpy as np
     np.seterr(all='ignore')
-except:
-    pass
+    print(f"✅ numpy {np.__version__} loaded successfully")
+except Exception as e:
+    print(f"⚠️ numpy preload failed: {e}")
 
-print("✅ CPU-only mode enabled - GPU disabled")
-
-# 禁用 thinc 的 GPU 检测
+# 检查ABI兼容性
 try:
-    import thinc
+    from numpy.core.multiarray import dtype
+    dtype_size = dtype('float64').itemsize
+    print(f"✅ numpy dtype size: {dtype_size} bytes (ABI compatible)")
+except Exception as e:
+    print(f"⚠️ ABI check failed: {e}")
 
-    thinc.config.set_gpu_allocator(None)
-except:
-    pass
+print(f"✅ CPU-only mode enabled - Platform: {platform.machine()}")
+# ========================================================
 
 import streamlit as st
 import spacy

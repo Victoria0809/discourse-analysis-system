@@ -1,10 +1,19 @@
 import os
 import sys
-
-# 强制禁用 GPU（Streamlit Cloud 无 GPU 驱动）
+# 强制禁用所有GPU功能
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["SPACY_PREFER_GPU"] = "0"
 os.environ["THINC_FORCE_CPU"] = "1"
+os.environ["NUMEXPR_MAX_THREADS"] = "2"  # 限制CPU使用
+
+# 预加载numpy避免冲突
+try:
+    import numpy as np
+    np.seterr(all='ignore')
+except:
+    pass
+
+print("✅ CPU-only mode enabled - GPU disabled")
 
 # 禁用 thinc 的 GPU 检测
 try:
